@@ -28,7 +28,7 @@ def call_openrouter(messages: list[dict], raw: bool = False):
                 "model": "openai/gpt-4o-mini",
                 "messages": messages,
                 "temperature": 0.2,
-                max_tokens": 800,
+                max_tokens": 500,
             },
             timeout=30,
         )
