@@ -1,0 +1,87 @@
+{
+  "name": "devsage-extension",
+  "displayName": "DevSage",
+  "description": "AI-powered intelligent code mentor and security scanner for VS Code.",
+  "version": "0.0.3",
+  "publisher": "ankitkumartiwari",
+  "license": "MIT",
+  "homepage": "https://github.com/ankitkumartiwari-web/devsage",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ankitkumartiwari-web/devsage"
+  },
+  "bugs": {
+    "url": "https://github.com/ankitkumartiwari-web/devsage/issues"
+  },
+  "icon": "logo.png",
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "ai",
+    "code-review",
+    "security",
+    "static-analysis",
+    "dependency-scanner",
+    "mentor",
+    "devsage"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onCommand:devsage.review",
+    "onCommand:devsage.applyAllFixes",
+    "onCommand:devsage.applySecurityFix",
+    "onCommand:devsage.scanWorkspace",
+    "onCommand:devsage.exportSecurityReport",
+    "onCommand:devsage.pinDependency"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "devsage.review",
+        "title": "DevSage: Review Code"
+      },
+      {
+        "command": "devsage.applyAllFixes",
+        "title": "DevSage: Apply All Fixes"
+      },
+      {
+        "command": "devsage.applySecurityFix",
+        "title": "DevSage: Fix Security Issue"
+      },
+      {
+        "command": "devsage.scanWorkspace",
+        "title": "DevSage: Scan Workspace for Security"
+      },
+      {
+        "command": "devsage.exportSecurityReport",
+        "title": "DevSage: Export Security Report"
+      },
+      {
+        "command": "devsage.pinDependency",
+        "title": "DevSage: Pin Dependency Version"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "devsage.review",
+          "when": "editorTextFocus",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -w -p ."
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "@types/vscode": "^1.70.0",
+    "typescript": "^4.0.0"
+  }
+}

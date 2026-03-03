@@ -1,0 +1,28 @@
+# Exclude source
+src/**
+**/*.ts
+**/*.map
+
+# Exclude node_modules source files
+node_modules/**/test/**
+node_modules/**/docs/**
+node_modules/**/examples/**
+node_modules/**/*.md
+
+# Exclude development files
+.vscode/**
+.git/**
+.gitignore
+tsconfig.json
+
+# Exclude previous VSIX
+*.vsix
+
+# Exclude backend
+../backend/**
+
+# Exclude dist if not needed
+dist/**
+
+# Exclude unnecessary assets
+**/*.log
