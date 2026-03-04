@@ -25,12 +25,12 @@ def call_openrouter(messages: list[dict], raw: bool = False):
             OPENROUTER_URL,
             headers=headers,
             json={
-                "model": "openai/gpt-4o-mini",
+                "model": "arcee-ai/trinity-large-preview:free",
                 "messages": messages,
                 "temperature": 0.2,
                 "max_tokens": 800,
             },
-            timeout=30,
+            timeout=25,
         )
 
         print("OPENROUTER STATUS:", response.status_code)
