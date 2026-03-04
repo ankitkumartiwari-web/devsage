@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional
+import threading
 
 from app.engine.static_analyzer import analyze_code
 from app.engine.complexity_estimator import ComplexityEstimator
@@ -11,6 +12,13 @@ from app.engine.openrouter_client import call_openrouter
 from app.engine.merger import merge_results
 
 app = FastAPI()
+
+# ============================================================
+# REQUEST LOCK (prevents multiple AI requests)
+# ============================================================
+
+request_lock = threading.Lock()
+
 
 # ============================================================
 # REQUEST MODELS
@@ -44,6 +52,22 @@ def health():
 
 @app.post("/analyze")
 def analyze(request: AnalyzeRequest):
+
+    # ---------------------------
+    # LOCK CHECK
+    # ---------------------------
+    if not request_lock.acquire(blocking=False):
+        return {
+            "summary": "Server busy. Please try again shortly.",
+            "bugs": [],
+            "security": [],
+            "optimization": [],
+            "mentor_questions": [],
+            "hints": [],
+            "exercise": "",
+            "emotional_feedback": ""
+        }
+
     try:
         print("MODE:", request.mode)
 
@@ -65,6 +89,7 @@ def analyze(request: AnalyzeRequest):
                 security + dependencies,
                 {}
             )
+
             merged["summary"] = "Workspace security scan completed."
             return merged
 
@@ -113,6 +138,9 @@ def analyze(request: AnalyzeRequest):
             }
         )
 
+    finally:
+        request_lock.release()
+
 
 # ============================================================
 # AI FIX ENDPOINT
@@ -120,6 +148,13 @@ def analyze(request: AnalyzeRequest):
 
 @app.post("/fix")
 def ai_fix(request: FixRequest):
+
+    if not request_lock.acquire(blocking=False):
+        return {
+            "fixed_code": "",
+            "message": "Server busy. Try again shortly."
+        }
+
     try:
         prompt = [
             {
@@ -144,10 +179,8 @@ Return ONLY corrected code.
 
         print("AI FIX CALLED")
 
-        # Raw mode enabled
         ai_response = call_openrouter(prompt, raw=True)
 
-        # Since raw=True, this SHOULD be a string
         if isinstance(ai_response, str):
             fixed_code = ai_response.strip()
         else:
@@ -168,3 +201,6 @@ Return ONLY corrected code.
                 "error": str(e)
             }
         )
+
+    finally:
+        request_lock.release()
