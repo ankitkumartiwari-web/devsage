@@ -2,7 +2,7 @@
   "name": "devsage-extension",
   "displayName": "DevSage",
   "description": "AI-powered intelligent code mentor and security scanner for VS Code.",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "publisher": "ankitkumartiwari",
   "license": "MIT",
   "homepage": "https://github.com/ankitkumartiwari-web/devsage",
@@ -27,8 +27,14 @@
     "static-analysis",
     "dependency-scanner",
     "mentor",
-    "devsage"
-  ],
+    "devsage",
+    "bug detection",
+    "ai code fix",
+    "vulnerability detection",
+    "code improvement",
+    "code quality",
+    "code security"
+],
   "main": "./out/extension.js",
   "activationEvents": [
     "onCommand:devsage.review",

@@ -6,17 +6,19 @@ let latestResult: any = null;
 let isRequestRunning = false;
 
 export function activate(context: vscode.ExtensionContext) {
+
   diagnosticCollection =
     vscode.languages.createDiagnosticCollection("devsage");
 
   context.subscriptions.push(diagnosticCollection);
 
   // =========================================================
-  // REVIEW COMMAND (AI MODE)
+  // REVIEW COMMAND
   // =========================================================
 
   context.subscriptions.push(
     vscode.commands.registerCommand("devsage.review", async () => {
+
       if (isRequestRunning) {
         vscode.window.showWarningMessage(
           "DevSage is already analyzing..."
@@ -33,16 +35,19 @@ export function activate(context: vscode.ExtensionContext) {
 
       const workspaceFolder =
         vscode.workspace.getWorkspaceFolder(document.uri);
+
       const projectPath = workspaceFolder?.uri.fsPath;
 
       const output =
         vscode.window.createOutputChannel("DevSage");
+
       output.clear();
       output.show(true);
 
       isRequestRunning = true;
 
       try {
+
         const result = await analyzeCode(
           code,
           language,
@@ -51,39 +56,83 @@ export function activate(context: vscode.ExtensionContext) {
         );
 
         latestResult = result || {};
+
         diagnosticCollection.clear();
 
         const diagnostics: vscode.Diagnostic[] = [];
-        const bugs = result?.bugs || [];
 
-        bugs.forEach((bug: any) => {
-          if (typeof bug.line === "number") {
-            const lineIndex = bug.line - 1;
-            if (
-              lineIndex >= 0 &&
-              lineIndex < document.lineCount
-            ) {
-              const line =
-                document.lineAt(lineIndex);
+        // =========================
+        // BUGS
+        // =========================
 
-              const range = new vscode.Range(
-                lineIndex,
-                0,
-                lineIndex,
-                line.text.length
-              );
+        (result?.bugs || []).forEach((bug: any) => {
 
-              const diagnostic =
-                new vscode.Diagnostic(
-                  range,
-                  bug.message || "Issue detected",
-                  vscode.DiagnosticSeverity.Warning
-                );
+          if (typeof bug.line !== "number") return;
 
-              diagnostic.source = "DevSage";
-              diagnostics.push(diagnostic);
-            }
-          }
+          const lineIndex = bug.line - 1;
+
+          if (
+            lineIndex < 0 ||
+            lineIndex >= document.lineCount
+          ) return;
+
+          const line =
+            document.lineAt(lineIndex);
+
+          const range = new vscode.Range(
+            lineIndex,
+            0,
+            lineIndex,
+            line.text.length
+          );
+
+          const diagnostic =
+            new vscode.Diagnostic(
+              range,
+              bug.message || "Issue detected",
+              vscode.DiagnosticSeverity.Warning
+            );
+
+          diagnostic.source = "DevSage";
+
+          diagnostics.push(diagnostic);
+        });
+
+        // =========================
+        // SECURITY
+        // =========================
+
+        (result?.security || []).forEach((issue: any) => {
+
+          if (typeof issue.line !== "number") return;
+
+          const lineIndex = issue.line - 1;
+
+          if (
+            lineIndex < 0 ||
+            lineIndex >= document.lineCount
+          ) return;
+
+          const line =
+            document.lineAt(lineIndex);
+
+          const range = new vscode.Range(
+            lineIndex,
+            0,
+            lineIndex,
+            line.text.length
+          );
+
+          const diagnostic =
+            new vscode.Diagnostic(
+              range,
+              issue.message || "Security issue",
+              vscode.DiagnosticSeverity.Error
+            );
+
+          diagnostic.source = "DevSage Security";
+
+          diagnostics.push(diagnostic);
         });
 
         diagnosticCollection.set(
@@ -91,74 +140,72 @@ export function activate(context: vscode.ExtensionContext) {
           diagnostics
         );
 
+        // =========================
         // OUTPUT PANEL
+        // =========================
+
         output.appendLine("══════════════════════════");
         output.appendLine("🔍 DevSage Code Review");
         output.appendLine("══════════════════════════\n");
 
-        output.appendLine(
-          `📊 Score: ${result?.score ?? 0}`
-        );
+        output.appendLine(`📊 Score: ${result?.score ?? 0}`);
 
-        if (
-          result?.risk_score !== undefined
-        ) {
-          output.appendLine(
-            `🛡 Risk Score: ${result.risk_score}`
-          );
+        if (result?.risk_score !== undefined) {
+          output.appendLine(`🛡 Risk Score: ${result.risk_score}`);
         }
 
         output.appendLine(
-          `\n⏱ Time Complexity: ${
-            result?.time_complexity ?? "N/A"
-          }`
-        );
-        output.appendLine(
-          `💾 Space Complexity: ${
-            result?.space_complexity ?? "N/A"
-          }`
+          `\n⏱ Time Complexity: ${result?.time_complexity ?? "N/A"}`
         );
 
-        if ((result?.bugs || []).length === 0) {
+        output.appendLine(
+          `💾 Space Complexity: ${result?.space_complexity ?? "N/A"}`
+        );
+
+        if (!(result?.bugs?.length)) {
           output.appendLine("\nNo bugs detected.");
         }
 
-        if ((result?.security || []).length === 0) {
-          output.appendLine(
-            "\nNo security issues found."
-          );
+        if (!(result?.security?.length)) {
+          output.appendLine("\nNo security issues found.");
         }
 
         if (result?.emotional_feedback) {
-          output.appendLine(
-            "\n💡 Emotional Feedback:"
-          );
-          output.appendLine(
-            result.emotional_feedback
-          );
+          output.appendLine("\n💡 Emotional Feedback:");
+          output.appendLine(result.emotional_feedback);
         }
-      } catch {
+
+      }
+      catch {
+
         vscode.window.showErrorMessage(
           "DevSage review failed."
         );
-      } finally {
-        isRequestRunning = false;
+
       }
+      finally {
+
+        isRequestRunning = false;
+
+      }
+
     })
   );
 
   // =========================================================
-  // WORKSPACE SCAN (STATIC ONLY)
+  // WORKSPACE SCAN
   // =========================================================
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "devsage.scanWorkspace",
       async () => {
+
         const output =
           vscode.window.createOutputChannel(
             "DevSage Security"
           );
+
         output.clear();
         output.show(true);
 
@@ -169,20 +216,22 @@ export function activate(context: vscode.ExtensionContext) {
           );
 
         if (files.length > 50) {
+
           vscode.window.showWarningMessage(
             "Large workspace detected. Scanning first 50 files only."
           );
+
           files = files.slice(0, 50);
         }
 
         let totalIssues: any[] = [];
 
         for (const file of files) {
+
           try {
+
             const document =
-              await vscode.workspace.openTextDocument(
-                file
-              );
+              await vscode.workspace.openTextDocument(file);
 
             const result =
               await analyzeCode(
@@ -195,54 +244,57 @@ export function activate(context: vscode.ExtensionContext) {
               result?.security || [];
 
             if (security.length > 0) {
-              output.appendLine(
-                `\n📂 ${file.fsPath}`
-              );
 
-              security.forEach(
-                (issue: any) => {
-                  output.appendLine(
-                    `[${issue?.severity ?? "UNKNOWN"}] ${
-                      issue?.message ??
-                      "Issue"
-                    }`
-                  );
-                }
-              );
+              output.appendLine(`\n📂 ${file.fsPath}`);
+
+              security.forEach((issue: any) => {
+
+                output.appendLine(
+                  `[${issue?.severity ?? "UNKNOWN"}] ${issue?.message ?? "Issue"}`
+                );
+
+              });
 
               totalIssues.push(...security);
             }
-          } catch {
+
+          }
+          catch {
             continue;
           }
         }
 
         if (totalIssues.length === 0) {
+
           output.appendLine(
             "\n✅ No security vulnerabilities found."
           );
+
         } else {
+
           output.appendLine(
             `\n🚨 Total Issues: ${totalIssues.length}`
           );
+
         }
 
         latestResult = {
           ...(latestResult || {}),
-          security: totalIssues,
+          security: totalIssues
         };
       }
     )
   );
 
   // =========================================================
-  // APPLY ALL FIXES (AI FIX MODE)
+  // APPLY ALL FIXES
   // =========================================================
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "devsage.applyAllFixes",
       async () => {
+
         if (isRequestRunning) {
           vscode.window.showWarningMessage(
             "DevSage is already applying a fix..."
@@ -254,19 +306,23 @@ export function activate(context: vscode.ExtensionContext) {
           vscode.window.activeTextEditor;
 
         if (!editor || !latestResult) {
+
           vscode.window.showInformationMessage(
             "No fixes available."
           );
+
           return;
         }
 
         const bugs =
           latestResult?.bugs || [];
 
-        if (bugs.length === 0) {
+        if (!bugs.length) {
+
           vscode.window.showInformationMessage(
             "No fixes available."
           );
+
           return;
         }
 
@@ -284,6 +340,7 @@ export function activate(context: vscode.ExtensionContext) {
         isRequestRunning = true;
 
         try {
+
           const aiFix =
             await requestAIFix(
               document.getText(),
@@ -291,34 +348,24 @@ export function activate(context: vscode.ExtensionContext) {
               "Fix all detected issues"
             );
 
-          if (
-            !aiFix ||
-            typeof aiFix.fixed_code !==
-              "string"
-          ) {
+          if (!aiFix?.fixed_code) {
             vscode.window.showErrorMessage(
               "AI returned empty fix."
             );
             return;
           }
 
-          const lastLineIndex = Math.max(
-            document.lineCount - 1,
-            0
-          );
-          const lastLine =
-            document.lineAt(lastLineIndex);
-
           const fullRange =
             new vscode.Range(
               0,
               0,
-              lastLineIndex,
-              lastLine.text.length
+              document.lineCount,
+              0
             );
 
           const edit =
             new vscode.WorkspaceEdit();
+
           edit.replace(
             document.uri,
             fullRange,
@@ -334,11 +381,9 @@ export function activate(context: vscode.ExtensionContext) {
           await vscode.commands.executeCommand(
             "devsage.review"
           );
-        } catch {
-          vscode.window.showErrorMessage(
-            "AI fix failed."
-          );
-        } finally {
+
+        }
+        finally {
           isRequestRunning = false;
         }
       }
@@ -346,127 +391,80 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   // =========================================================
-  // APPLY SECURITY FIX (AI FIX MODE)
+  // APPLY SECURITY FIX
   // =========================================================
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "devsage.applySecurityFix",
       async () => {
-        if (isRequestRunning) {
-          vscode.window.showWarningMessage(
-            "DevSage is already applying a fix..."
-          );
-          return;
-        }
+
+        if (isRequestRunning) return;
 
         const editor =
           vscode.window.activeTextEditor;
 
-        if (!editor) {
-          vscode.window.showErrorMessage(
-            "No active editor found."
-          );
-          return;
-        }
-
-        if (!latestResult) {
-          vscode.window.showInformationMessage(
-            "Run DevSage review first."
-          );
-          return;
-        }
+        if (!editor) return;
 
         const securityIssues =
-          latestResult?.security?.filter(
-            (issue: any) =>
-              issue &&
-              typeof issue.message ===
-                "string"
-          ) || [];
+          latestResult?.security || [];
 
-        if (securityIssues.length === 0) {
+        if (!securityIssues.length) {
           vscode.window.showInformationMessage(
             "No security issues to fix."
           );
           return;
         }
 
-        const quickPickItems =
-          securityIssues.map(
-            (issue: any, index: number) => ({
-              label: issue.message,
-              description:
-                issue.severity
-                  ? `[${String(
-                      issue.severity
-                    ).toUpperCase()}]`
-                  : "[UNKNOWN]",
-              issueIndex: index,
-            })
-          );
+        type SecurityPickItem = vscode.QuickPickItem & {
+          issue: any;
+        };
 
-        const picked =
-          await vscode.window.showQuickPick(
-            quickPickItems,
-            {
-              title:
-                "Select a security issue to fix",
-              ignoreFocusOut: true,
-            }
-          );
+        const items: SecurityPickItem[] = securityIssues.map((issue: any) => ({
+          label: issue.message,
+          description: issue.severity ? `[${issue.severity}]` : "",
+          issue
+        }));
+
+        const picked = await vscode.window.showQuickPick(items);
 
         if (!picked) return;
 
-        const selectedIssue =
-          securityIssues[
-            (picked as any).issueIndex
-          ];
+        const aiFix =
+          await requestAIFix(
+          editor.document.getText(),
+          editor.document.languageId,
+          picked.issue.message
+        );
 
-        if (!selectedIssue) return;
-
-        const document = editor.document;
+        if (!picked) return;
 
         isRequestRunning = true;
 
         try {
+
           const aiFix =
             await requestAIFix(
-              document.getText(),
-              document.languageId,
-              selectedIssue.message
+              editor.document.getText(),
+              editor.document.languageId,
+              picked.issue.message
             );
 
-          if (
-            !aiFix ||
-            typeof aiFix.fixed_code !==
-              "string"
-          ) {
-            vscode.window.showErrorMessage(
-              "AI returned empty fix."
-            );
-            return;
-          }
-
-          const lastLineIndex = Math.max(
-            document.lineCount - 1,
-            0
-          );
-          const lastLine =
-            document.lineAt(lastLineIndex);
+          if (!aiFix?.fixed_code) return;
 
           const fullRange =
             new vscode.Range(
               0,
               0,
-              lastLineIndex,
-              lastLine.text.length
+              editor.document.lineCount,
+              0
             );
 
           const edit =
             new vscode.WorkspaceEdit();
+
           edit.replace(
-            document.uri,
+            editor.document.uri,
             fullRange,
             aiFix.fixed_code
           );
@@ -474,22 +472,80 @@ export function activate(context: vscode.ExtensionContext) {
           await vscode.workspace.applyEdit(edit);
 
           vscode.window.showInformationMessage(
-            "DevSage applied security fix."
+            "Security fix applied."
           );
 
-          await vscode.commands.executeCommand(
-            "devsage.review"
-          );
-        } catch {
-          vscode.window.showErrorMessage(
-            "AI security fix failed."
-          );
-        } finally {
+        }
+        finally {
           isRequestRunning = false;
         }
       }
     )
   );
+
+  // =========================================================
+  // PIN DEPENDENCY
+  // =========================================================
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "devsage.pinDependency",
+      async () => {
+
+        const editor =
+          vscode.window.activeTextEditor;
+
+        if (!editor) {
+          vscode.window.showErrorMessage(
+            "Open a file first."
+          );
+          return;
+        }
+
+        const document = editor.document;
+        const position = editor.selection.active;
+
+        const line =
+          document.lineAt(position.line).text;
+
+        const match =
+          line.match(/"([^"]+)":\s*"\^?~?(\d+\.\d+\.\d+)"/) ||
+          line.match(/([\w\-]+)==(\d+\.\d+\.\d+)/) ||
+          line.match(/([\w\-]+)@(\^?\d+\.\d+\.\d+)/);
+
+        if (!match) {
+
+          vscode.window.showInformationMessage(
+            "No dependency detected."
+          );
+
+          return;
+        }
+
+        const version = match[2];
+        const pinned = version.replace(/[\^~]/g, "");
+
+        const newLine =
+          line.replace(version, pinned);
+
+        const edit =
+          new vscode.WorkspaceEdit();
+
+        edit.replace(
+          document.uri,
+          document.lineAt(position.line).range,
+          newLine
+        );
+
+        await vscode.workspace.applyEdit(edit);
+
+        vscode.window.showInformationMessage(
+          `Dependency pinned to ${pinned}`
+        );
+      }
+    )
+  );
+
 }
 
 export function deactivate() {}
