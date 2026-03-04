@@ -58,7 +58,7 @@ Search for DevSage in the VS Code Marketplace and install.
 Install via VSIX
 
 ```
-code --install-extension devsage-extension-0.0.2.vsix
+code --install-extension devsage-extension-0.1.0.vsix
 ```
 
 ---
